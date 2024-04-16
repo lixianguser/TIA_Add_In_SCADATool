@@ -310,7 +310,7 @@ namespace TIA_Add_In_SCADATool
         /// <returns></returns>
         private string Export(IEngineeringObject exportItem, string exportPath)
         {
-            const ExportOptions exportOption = ExportOptions.WithDefaults & ExportOptions.WithReadOnly;
+            const ExportOptions exportOption = ExportOptions.WithDefaults | ExportOptions.WithReadOnly;
 
             switch (exportItem)
             {
