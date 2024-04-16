@@ -89,6 +89,11 @@ namespace TIA_Add_In_SCADATool
         /// </summary>
         public StreamWriter _streamWriter;
 
+        /// <summary>
+        /// csv文件保存路径
+        /// </summary>
+        private string _csvFilePath;
+
         #endregion
         public AddIn(TiaPortal tiaPortal) : base("SCADA工具")
         {
@@ -126,7 +131,8 @@ namespace TIA_Add_In_SCADATool
                     using (ExclusiveAccess exclusiveAccess = _tiaPortal.ExclusiveAccess("导出中……"))
                     {
                         //定义csv数据流
-                        _streamWriter = new StreamWriter(Path.Combine(folderBrowserDialog.SelectedPath, "SCADA.csv"));
+                        _csvFilePath = Path.Combine(folderBrowserDialog.SelectedPath, "SCADA.csv");
+                        _streamWriter = new StreamWriter(_csvFilePath);
                         //写入标题行
                         _streamWriter.WriteLine("\"地址\",\"数据类别0状态1错误2警告\",\"报警文本en-US\",\"报警文本zh-CN\"");
 
@@ -190,6 +196,11 @@ namespace TIA_Add_In_SCADATool
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "异常", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //删除csv文件
+                if (File.Exists(_csvFilePath))
+                {
+                    File.Delete(_csvFilePath);
+                }
                 throw;
             }
             finally
