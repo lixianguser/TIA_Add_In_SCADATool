@@ -40,6 +40,11 @@ namespace TIA_Add_In_SCADATool
         private string _projectDir;
 
         /// <summary>
+        /// 导出文件夹路径
+        /// </summary>
+        private string _exportFileDir;
+
+        /// <summary>
         /// 导出文件夹信息
         /// </summary>
         private DirectoryInfo _exportDirInfo;
@@ -98,22 +103,23 @@ namespace TIA_Add_In_SCADATool
 
         private void Generate_OnClick(MenuSelectionProvider<InstanceDB> menuSelectionProvider)
         {
+            //TODO 获取项目数据
+            GetProjectData();
             //TODO 确定PLC的在线状态
             if (!IsOffline())
             {
                 throw new Exception(string.Format(CultureInfo.InvariantCulture,
                             "PLC 在线状态！"));
             }
-            //TODO 获取项目数据
-            GetProjectData();
+
             try
             {
-                //TODO 打开窗口获取.csv文件保存位置
+                // 打开窗口获取.csv文件保存位置
                 FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
                 if (folderBrowserDialog.ShowDialog(new Form()
                 { TopMost = true, WindowState = FormWindowState.Maximized }) == DialogResult.OK)
                 {
-                    //TODO 独占窗口
+                    // 独占窗口
                     using (ExclusiveAccess exclusiveAccess = _tiaPortal.ExclusiveAccess("导出中……"))
                     {
                         //定义csv数据流
@@ -128,35 +134,36 @@ namespace TIA_Add_In_SCADATool
                                 break;
                             }
 
-                            //TODO 获取InstanceName
+                            // 获取InstanceName
                             _instanceName = instanceDB.Name;
-                            //TODO 获取InstanceOfName
+                            // 获取InstanceOfName
                             _instanceOfName = instanceDB.InstanceOfName;
-                            //TODO 获取Number
+                            // 获取Number
                             _number = instanceDB.Number.ToString();
-                            //TODO 获取ProgrammingLanguage
+                            // 获取ProgrammingLanguage
                             _programmingLanguage = instanceDB.ProgrammingLanguage.ToString();
 
                             //创建导出文件夹
-                            string exportFileDir = Path.Combine(_projectDir, "SCADA");
-                            _exportDirInfo = Directory.CreateDirectory(exportFileDir);
-                            if (Directory.Exists(exportFileDir))
+                            _exportFileDir = Path.Combine(_projectDir, "SCADA");
+                            _exportDirInfo = Directory.CreateDirectory(_exportFileDir);
+                            if (Directory.Exists(_exportFileDir))
                             {
-                                //TODO 导出InstanceDB
-                                _iDBXmlFilePath = Path.Combine(exportFileDir, StringHandle(_instanceName), ".xml");
+                                // 导出InstanceDB
+                                _iDBXmlFilePath = Path.Combine(_exportFileDir, StringHandle(_instanceName), ".xml");
                                 exclusiveAccess.Text = "导出中-> " + Export(instanceDB, _iDBXmlFilePath);
 
                                 //判断文件夹中是否已包含
-                                _fBXmlFilePath = Path.Combine(exportFileDir, StringHandle(_instanceOfName), ".xml");
-                                string[] fileNames = Directory.GetFiles(exportFileDir, Path.GetFileName(_fBXmlFilePath));
+                                _fBXmlFilePath = Path.Combine(_exportFileDir, StringHandle(_instanceOfName), ".xml");
+                                string[] fileNames = Directory.GetFiles(_exportFileDir, Path.GetFileName(_fBXmlFilePath));
                                 if (fileNames.Length < 0)
                                 {
-                                    //TODO 导出FB
-                                    exclusiveAccess.Text = "导出中-> " + Export(GetFB(), _fBXmlFilePath);
+                                    // 导出FB
+                                    exclusiveAccess.Text = "导出中-> " + _instanceOfName;
+                                    ExportFB();
                                 }
                             }
 
-                            //TODO 处理Xml
+                            // 处理Xml
                             XmlEditor xmlEditor = new XmlEditor
                             {
                                 _fBXmlFilePath = _fBXmlFilePath,
@@ -167,19 +174,14 @@ namespace TIA_Add_In_SCADATool
                                 _instanceOfName = _instanceOfName,
                                 _streamWriter = _streamWriter
                             };
+
+                            xmlEditor.Run();
                         }
-                        //TODO 写入csv数据流
+                        // 写入csv数据流
                         _streamWriter.Close();
-                        //TODO 导出完成确认是否打开导出文件夹
-                        DialogResult dialogResult = MessageBox.Show("是否打开导出文件夹？", "导出完成", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                        if (dialogResult == DialogResult.Yes)
-                        {
-                            if (Directory.Exists(_projectDir))
-                            {
-                                Process.Start("explorer.exe",_projectDir);
-                            }
-                        }
                     }
+                    //TODO 导出完成
+                    MessageBox.Show(string.Format("目标文件夹:{0}",folderBrowserDialog.SelectedPath), "导出完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
@@ -190,7 +192,7 @@ namespace TIA_Add_In_SCADATool
             finally
             {
                 //TODO 删除导出的文件夹
-                _exportDirInfo.Delete();
+                DeleteDirectoryAndContents(_exportFileDir);
             }
         }
 
@@ -216,60 +218,72 @@ namespace TIA_Add_In_SCADATool
             return ret;
         }
 
-        private FB GetFB()
+        /// <summary>
+        /// 导出指定的FB块
+        /// </summary>
+        private void ExportFB()
         {
             PlcBlockGroup plcBlockGroups = _plcSoftware.BlockGroup;
-            foreach (FB fB in plcBlockGroups.Blocks)
+            foreach (PlcBlock fB in plcBlockGroups.Blocks)
             {
                 if (fB.Name == _instanceOfName)
                 {
-                    return fB;
+                    Export(fB, _fBXmlFilePath);
                 }
             }
             foreach (PlcBlockGroup plcBlockGroup in plcBlockGroups.Groups)
             {
-                return EnumerateAllBlocks(plcBlockGroup);
+                EnumerateAllBlocks(plcBlockGroup);
             }
-
-            return null;
         }
 
-        private FB EnumerateAllBlocks(PlcBlockGroup blockGroup)
+        /// <summary>
+        /// 枚举所有程序块
+        /// </summary>
+        /// <param name="blockGroup"></param>
+        private void EnumerateAllBlocks(PlcBlockGroup blockGroup)
         {
             foreach (PlcBlockUserGroup subBlockGroup in blockGroup.Groups)
             {
-                foreach (FB fB in subBlockGroup.Blocks)
+                foreach (PlcBlock fB in subBlockGroup.Blocks)
                 {
                     if (fB.Name == _instanceOfName)
                     {
-                        return fB;
+                        Export(fB, _fBXmlFilePath);
                     }
                 }
                 EnumerateAllBlocks(subBlockGroup);
             }
-
-            return null;
         }
 
-        // Returns PlcSoftware
-        private void GetPlcSoftware()
+        /// <summary>
+        /// 删除文件夹及其内容
+        /// </summary>
+        /// <param name="targetDir"></param>
+        private static void DeleteDirectoryAndContents(string targetDir)
         {
-            foreach (Device device in _projectBase.Devices)
+            if (!Directory.Exists(targetDir))
             {
-                if (device.DeviceItems[1].GetAttribute("Classification") is DeviceItemClassifications.CPU)
-                {
-                    DeviceItemComposition deviceItemComposition = device.DeviceItems;
-                    foreach (DeviceItem deviceItem in deviceItemComposition)
-                    {
-                        SoftwareContainer softwareContainer = deviceItem.GetService<SoftwareContainer>();
-                        if (softwareContainer != null)
-                        {
-                            Software softwareBase = softwareContainer.Software;
-                            _plcSoftware = softwareBase as PlcSoftware;
-                        }
-                    }
-                }
+                throw new DirectoryNotFoundException($"目录 {targetDir} 不存在。");
             }
+
+            string[] files = Directory.GetFiles(targetDir);
+            string[] dirs = Directory.GetDirectories(targetDir);
+
+            // 先删除所有文件
+            foreach (string file in files)
+            {
+                File.Delete(file);
+            }
+
+            // 然后递归删除所有子目录
+            foreach (string dir in dirs)
+            {
+                DeleteDirectoryAndContents(dir);
+            }
+
+            // 最后，删除目录本身
+            Directory.Delete(targetDir, false);
         }
 
         /// <summary>
@@ -348,6 +362,23 @@ namespace TIA_Add_In_SCADATool
 
                 _projectPath = _projectBase?.Path.FullName;
                 _projectDir = _projectBase?.Path.Directory?.FullName;
+
+                foreach (Device device in _projectBase.Devices)
+                {
+                    if (device.DeviceItems[1].GetAttribute("Classification") is DeviceItemClassifications.CPU)
+                    {
+                        DeviceItemComposition deviceItemComposition = device.DeviceItems;
+                        foreach (DeviceItem deviceItem in deviceItemComposition)
+                        {
+                            SoftwareContainer softwareContainer = deviceItem.GetService<SoftwareContainer>();
+                            if (softwareContainer != null)
+                            {
+                                Software softwareBase = softwareContainer.Software;
+                                _plcSoftware = softwareBase as PlcSoftware;
+                            }
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {

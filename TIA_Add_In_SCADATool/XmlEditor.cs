@@ -10,7 +10,7 @@ namespace TIA_Add_In_SCADATool
         /// <summary>
         /// 获取Xml的命名空间
         /// </summary>
-        public XmlNamespaceManager _xmlns;
+        private XmlNamespaceManager _xmlns;
 
         /// <summary>
         /// 获取实例的DB名称
@@ -52,7 +52,7 @@ namespace TIA_Add_In_SCADATool
         /// </summary>
         private readonly List<string[]> _supervisions = new List<string[]>();
 
-        public XmlEditor()
+        public void Run()
         {
             //读取Xml文件
             XmlDocument xmlDocument = new XmlDocument();
