@@ -123,7 +123,7 @@ namespace TIA_Add_In_SCADATool
                     using (ExclusiveAccess exclusiveAccess = _tiaPortal.ExclusiveAccess("导出中……"))
                     {
                         //定义csv数据流
-                        _streamWriter = new StreamWriter(Path.Combine(_projectDir, "SCADA.csv"));
+                        _streamWriter = new StreamWriter(Path.Combine(folderBrowserDialog.SelectedPath, "SCADA.csv"));
                         //写入标题行
                         _streamWriter.WriteLine("\"地址\",\"数据类别0状态1错误2警告\",\"报警文本en-US\",\"报警文本zh-CN\"");
 
