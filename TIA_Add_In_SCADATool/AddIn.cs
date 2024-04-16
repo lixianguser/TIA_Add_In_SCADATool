@@ -103,6 +103,9 @@ namespace TIA_Add_In_SCADATool
 
         private void Generate_OnClick(MenuSelectionProvider<InstanceDB> menuSelectionProvider)
         {
+#if DEBUG
+            Debugger.Launch();
+#endif
             //TODO 获取项目数据
             GetProjectData();
             //TODO 确定PLC的在线状态
@@ -181,7 +184,7 @@ namespace TIA_Add_In_SCADATool
                         _streamWriter.Close();
                     }
                     //TODO 导出完成
-                    MessageBox.Show(string.Format("目标文件夹:{0}",folderBrowserDialog.SelectedPath), "导出完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(string.Format("目标文件夹:{0}", folderBrowserDialog.SelectedPath), "导出完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
