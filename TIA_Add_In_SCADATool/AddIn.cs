@@ -111,9 +111,9 @@ namespace TIA_Add_In_SCADATool
 #if DEBUG
             Debugger.Launch();
 #endif
-            //TODO 获取项目数据
+            //获取项目数据
             GetProjectData();
-            //TODO 确定PLC的在线状态
+            //确定PLC的在线状态
             if (!IsOffline())
             {
                 throw new Exception(string.Format(CultureInfo.InvariantCulture,
@@ -189,7 +189,7 @@ namespace TIA_Add_In_SCADATool
                         // 写入csv数据流
                         _streamWriter.Close();
                     }
-                    //TODO 导出完成
+                    //导出完成
                     MessageBox.Show(string.Format("目标文件夹:{0}", folderBrowserDialog.SelectedPath), "导出完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -205,7 +205,7 @@ namespace TIA_Add_In_SCADATool
             }
             finally
             {
-                //TODO 删除导出的文件夹
+                // 删除导出的文件夹
                 DeleteDirectoryAndContents(_exportFileDir);
             }
         }

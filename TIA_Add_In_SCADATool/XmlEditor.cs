@@ -162,7 +162,7 @@ namespace TIA_Add_In_SCADATool
                                         break;
                                     case "Position02":
                                         //int f = GetOffset(memberOfZ_Data);
-                                        //TODO 判断InstanceOfName实例决定是否需要占位2数据
+                                        // 判断InstanceOfName实例决定是否需要占位2数据
                                         if (!_instanceOfName.Contains("_2P_"))
                                             break;
                                         foreach (XmlNode memberOfPosition02 in GetSection(memberOfZ_Data))
@@ -206,7 +206,7 @@ namespace TIA_Add_In_SCADATool
                                     case "Occupied02":
                                         // int m = GetOffset(memberOfZ_Status);
                                         // string n = CalOffset(h + m);
-                                        //TODO 判断InstanceOfName实例决定是否需要占位2数据
+                                        // 判断InstanceOfName实例决定是否需要占位2数据
                                         if (!_instanceOfName.Contains("_2P_") & !_instanceOfName.Contains("_PStackUni_"))
                                             break;
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Occupied02");
@@ -228,7 +228,7 @@ namespace TIA_Add_In_SCADATool
             //写入csv数据流
             //_streamWriter.Close();
 
-            //TODO 删除导出的Xml文件
+            // 删除导出的Xml文件
         }
 
         /// <summary>
