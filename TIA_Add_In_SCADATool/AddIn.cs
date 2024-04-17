@@ -158,11 +158,11 @@ namespace TIA_Add_In_SCADATool
                             if (Directory.Exists(_exportFileDir))
                             {
                                 // 导出InstanceDB
-                                _iDBXmlFilePath = Path.Combine(_exportFileDir, StringHandle(_instanceName), ".xml");
+                                _iDBXmlFilePath = Path.Combine(_exportFileDir, StringHandle(_instanceName) + ".xml");
                                 exclusiveAccess.Text = "导出中-> " + Export(instanceDB, _iDBXmlFilePath);
 
                                 //判断文件夹中是否已包含FB块XML
-                                _fBXmlFilePath = Path.Combine(_exportFileDir, StringHandle(_instanceOfName), ".xml");
+                                _fBXmlFilePath = Path.Combine(_exportFileDir, StringHandle(_instanceOfName) + ".xml");
                                 string[] fileNames = Directory.GetFiles(_exportFileDir, Path.GetFileName(_fBXmlFilePath));
                                 if (fileNames.Length < 1)
                                 {
