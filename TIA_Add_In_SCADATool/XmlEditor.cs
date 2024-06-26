@@ -145,6 +145,14 @@ namespace TIA_Add_In_SCADATool
                                         {
                                             switch (GetName(memberOfPosition01))
                                             {
+                                                //获取原地址变量
+                                                case "Origin": 
+                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), "Z_Data_Position01_Origin");
+                                                    break;
+                                                //获取目的地变量
+                                                case "Destination":
+                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), "Z_Data_Position01_Destination");
+                                                    break;
                                                 case "PalletID":
                                                     //d += GetOffset(memberOfPosition01);
                                                     //string e = CalOffset(c + d);
@@ -163,12 +171,20 @@ namespace TIA_Add_In_SCADATool
                                     case "Position02":
                                         //int f = GetOffset(memberOfZ_Data);
                                         // 判断InstanceOfName实例决定是否需要占位2数据
-                                        if (!_instanceOfName.Contains("_2P_"))
+                                        if (!_instanceOfName.Contains("_2P"))
                                             break;
                                         foreach (XmlNode memberOfPosition02 in GetSection(memberOfZ_Data))
                                         {
                                             switch (GetName(memberOfPosition02))
                                             {
+                                                //获取原地址变量
+                                                case "Origin":
+                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02)), "Z_Data_Position02_Origin");
+                                                    break;
+                                                //获取目的地变量
+                                                case "Destination":
+                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02)), "Z_Data_Position02_Destination");
+                                                    break;
                                                 case "PalletID":
                                                     //f += GetOffset(memberOfPosition02);
                                                     //string g = CalOffset(c + f);
@@ -207,7 +223,7 @@ namespace TIA_Add_In_SCADATool
                                         // int m = GetOffset(memberOfZ_Status);
                                         // string n = CalOffset(h + m);
                                         // 判断InstanceOfName实例决定是否需要占位2数据
-                                        if (!_instanceOfName.Contains("_2P_") & !_instanceOfName.Contains("_PStackUni_"))
+                                        if (!_instanceOfName.Contains("_2P") & !_instanceOfName.Contains("_PStackUni_"))
                                             break;
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Occupied02");
                                         break;
@@ -305,7 +321,17 @@ namespace TIA_Add_In_SCADATool
             XmlNode specificField = xmlNode.SelectSingleNode("./z:SpecificField", _xmlns);
             XmlNode specificFieldText = specificField.SelectSingleNode("./z:SpecificFieldText", _xmlns);
             XmlNode multiLanguageText = specificFieldText.SelectSingleNode(string.Format("./z:MultiLanguageText[@Lang=\"{0}\"]", lang), _xmlns);
-            string str = multiLanguageText.FirstChild.Value;
+            //如果报警文本没有配置中文/英文，修复报错。
+            string str = "";
+
+            if (multiLanguageText == null)
+            {
+                return str;
+            }
+            else
+            {
+                str = multiLanguageText.FirstChild.Value;
+            }
             return str;
         }
 
