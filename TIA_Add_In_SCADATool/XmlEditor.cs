@@ -133,8 +133,11 @@ namespace TIA_Add_In_SCADATool
                         case "Q_M03_RetractRightFork":
                             SetSacdaTag(CalOffset(GetOffset(member)), "Q_M03_RetractRightFork");
                             break;
+                        //TODO 叠盘机托盘数量
+                        case "R_DV_PalletStackCount":
+                            SetSacdaTag(CalOffset(GetOffset(member)), "R_DV_PalletStackCount",true);
+                            break;
                         case "Z_Data"://托盘数据
-                            //int c = GetOffset(member);
                             foreach (XmlNode memberOfZ_Data in GetSection(member))
                             {
                                 switch (GetName(memberOfZ_Data))
@@ -154,15 +157,19 @@ namespace TIA_Add_In_SCADATool
                                                     SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), "Z_Data_Position01_Destination");
                                                     break;
                                                 case "PalletID":
-                                                    //d += GetOffset(memberOfPosition01);
-                                                    //string e = CalOffset(c + d);
                                                     //获取条码的字符长度
                                                     foreach (XmlNode item in GetSection(memberOfPosition01))
                                                     {
                                                         //Array[1..20] of Char
                                                         string barcodeType = item.Attributes.GetNamedItem("Datatype").Value;
-                                                        //string barcodeLenth = GetBarcodeLenth(barcodeType);
                                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), GetBarcodeLenth(barcodeType), "Z_Data_Position01_PalletID");
+                                                    }
+                                                    break;
+                                                //TODO 托盘外检拒绝信息 
+                                                case "RejectCode":
+                                                    foreach (XmlNode item in GetSection(memberOfPosition01))
+                                                    {
+                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01) + GetOffset(item)), GetName(item));
                                                     }
                                                     break;
                                             }
@@ -197,6 +204,13 @@ namespace TIA_Add_In_SCADATool
                                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02)), GetBarcodeLenth(barcodeType), "Z_Data_Position02_PalletID");
                                                     }
                                                     break;
+                                                //TODO 托盘外检拒绝信息 
+                                                case "RejectCode":
+                                                    foreach (XmlNode item in GetSection(memberOfPosition02))
+                                                    {
+                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02) + GetOffset(item)), GetName(item));
+                                                    }
+                                                    break;
                                             }
                                         }
                                         break;
@@ -204,28 +218,29 @@ namespace TIA_Add_In_SCADATool
                             }
                             break;
                         case "Z_Status"://输送机状态
-                            //int h = GetOffset(member);
                             foreach (XmlNode memberOfZ_Status in GetSection(member))
                             {
                                 switch (GetName(memberOfZ_Status))
                                 {
                                     case "Fault":
-                                        //int i = GetOffset(memberOfZ_Status);
-                                        //string j = CalOffset(h + i);
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Fault");
                                         break;
                                     case "Occupied01":
-                                        //int k = GetOffset(memberOfZ_Status);
-                                        //string l = CalOffset(h + k);
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Occupied01");
                                         break;
                                     case "Occupied02":
-                                        // int m = GetOffset(memberOfZ_Status);
-                                        // string n = CalOffset(h + m);
                                         // 判断InstanceOfName实例决定是否需要占位2数据
                                         if (!_instanceOfName.Contains("_2P") & !_instanceOfName.Contains("_PStackUni_"))
                                             break;
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Occupied02");
+                                        break;
+                                    //TODO 叠盘机自动模式
+                                    case "AutoModeEnabled":
+                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "AutoModeEnabled");
+                                        break;
+                                    //TODO 叠盘机手动模式
+                                    case "JogSelected":
+                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "JogSelected");
                                         break;
                                 }
                             }
@@ -425,7 +440,7 @@ namespace TIA_Add_In_SCADATool
         }
 
         /// <summary>
-        /// 设置SCADA标签值
+        /// 设置SCADA标签值-Bool
         /// </summary>
         /// <param name="offset"></param>
         /// <param name="input"></param>
@@ -434,6 +449,28 @@ namespace TIA_Add_In_SCADATool
         {
             // BOOL：DB编号,X偏移量;标签
             string str = string.Format("\"{0}{1},X{2};{3}_{4}\",\"0\"", _programmingLanguage, _number, offset, _instanceName, input);
+            _streamWriter.WriteLine(str);
+            Console.WriteLine(str);
+            return str;
+        }
+
+        /// <summary>
+        /// 设置SCADA标签值-Int
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <param name="input"></param>
+        /// <returns>"DB304,INT40;P1005_R_DV_PalletStackCountd","0"</returns>
+        private string SetSacdaTag(string offset, string input, bool isInt)
+        {
+            string str = "";
+
+            if (!isInt)
+            {
+                return str;
+            }
+            offset = offset.Replace(".0","");
+            // Int：DB编号,INT偏移量;标签
+            str = string.Format("\"{0}{1},INT{2};{3}_{4}\",\"0\"", _programmingLanguage, _number, offset, _instanceName, input);
             _streamWriter.WriteLine(str);
             Console.WriteLine(str);
             return str;

@@ -123,7 +123,12 @@ namespace TIA_Add_In_SCADATool
             try
             {
                 // 打开窗口获取.csv文件保存位置
-                FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
+                SaveFileDialog folderBrowserDialog = new SaveFileDialog
+                {
+                    Filter = "逗号分隔值|*.csv",
+                    Title = "请选择保存文件的路径"
+                };
+
                 if (folderBrowserDialog.ShowDialog(new Form()
                 { TopMost = true, WindowState = FormWindowState.Maximized }) == DialogResult.OK)
                 {
@@ -131,7 +136,8 @@ namespace TIA_Add_In_SCADATool
                     using (ExclusiveAccess exclusiveAccess = _tiaPortal.ExclusiveAccess("导出中……"))
                     {
                         //定义csv数据流
-                        _csvFilePath = Path.Combine(folderBrowserDialog.SelectedPath, "SCADA.csv");
+                        _csvFilePath = folderBrowserDialog.FileName;
+                        //_csvFilePath = Path.Combine(folderBrowserDialog.SelectedPath, "SCADA.csv");
                         _streamWriter = new StreamWriter(_csvFilePath);
                         //写入标题行
                         _streamWriter.WriteLine("\"地址\",\"数据类别0状态1错误2警告\",\"报警文本en-US\",\"报警文本zh-CN\"");
@@ -190,7 +196,8 @@ namespace TIA_Add_In_SCADATool
                         _streamWriter.Close();
                     }
                     //导出完成
-                    MessageBox.Show(string.Format("目标文件夹:{0}", folderBrowserDialog.SelectedPath), "导出完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(string.Format("目标文件:{0}", folderBrowserDialog.FileName), "导出完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    //MessageBox.Show(string.Format("目标文件夹:{0}", folderBrowserDialog.SelectedPath), "导出完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
