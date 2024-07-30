@@ -165,11 +165,11 @@ namespace TIA_Add_In_SCADATool
                                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), GetBarcodeLenth(barcodeType), "Z_Data_Position01_PalletID");
                                                     }
                                                     break;
-                                                //TODO 托盘外检拒绝信息 
+                                                //托盘外检拒绝信息 
                                                 case "RejectCode":
                                                     foreach (XmlNode item in GetSection(memberOfPosition01))
                                                     {
-                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01) + GetOffset(item)), GetName(item));
+                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01) + GetOffset(item)), "Z_Data_Position01_" + GetName(item));
                                                     }
                                                     break;
                                             }
@@ -204,11 +204,11 @@ namespace TIA_Add_In_SCADATool
                                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02)), GetBarcodeLenth(barcodeType), "Z_Data_Position02_PalletID");
                                                     }
                                                     break;
-                                                //TODO 托盘外检拒绝信息 
+                                                //托盘外检拒绝信息 
                                                 case "RejectCode":
                                                     foreach (XmlNode item in GetSection(memberOfPosition02))
                                                     {
-                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02) + GetOffset(item)), GetName(item));
+                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02) + GetOffset(item)), "Z_Data_Position02_" + GetName(item));
                                                     }
                                                     break;
                                             }
@@ -234,11 +234,11 @@ namespace TIA_Add_In_SCADATool
                                             break;
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Occupied02");
                                         break;
-                                    //TODO 叠盘机自动模式
+                                    //叠盘机自动模式
                                     case "AutoModeEnabled":
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "AutoModeEnabled");
                                         break;
-                                    //TODO 叠盘机手动模式
+                                    //叠盘机手动模式
                                     case "JogSelected":
                                         SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "JogSelected");
                                         break;
