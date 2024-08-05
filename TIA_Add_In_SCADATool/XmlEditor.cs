@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml;
 
 namespace TIA_Add_In_SCADATool
@@ -75,19 +76,18 @@ namespace TIA_Add_In_SCADATool
             {
                 foreach (XmlNode supervision in supervisionGroup)
                 {
-                    string[] supervisioninfo = new string[4];
-                    supervisioninfo[0] = GetName(GetSupervision(supervision));//DB监控定义
-                    supervisioninfo[1] = GetSupervisionType(supervision);//DB监控类型
+                    string[] item = new string[4];
+                    item[0] = GetName(GetSupervision(supervision));//DB监控定义
+                    item[1] = GetSupervisionType(supervision);//DB监控类型
                     foreach (XmlNode bTSupervision in bTSupervisions)
                     {
-
                         if (GetName(GetSupervision(supervision)).Contains(GetName(GetSupervisedOperand(bTSupervision))))
                         {
-                            supervisioninfo[2] = GetMultiLanguageText(bTSupervision, "en-US");//获取英文报警文本
-                            supervisioninfo[3] = GetMultiLanguageText(bTSupervision, "zh-CN");//获取中文报警文本
+                            item[2] = GetMultiLanguageText(bTSupervision, "en-US");//获取英文报警文本
+                            item[3] = GetMultiLanguageText(bTSupervision, "zh-CN");//获取中文报警文本
                         }
                     }
-                    _supervisions.Add(supervisioninfo);
+                    _supervisions.Add(item);
                 }
             }
 
@@ -96,46 +96,28 @@ namespace TIA_Add_In_SCADATool
             {
                 foreach (XmlNode member in members)
                 {
+                    string offset;
                     switch (GetName(member))
                     {
                         //获取运行状态变量
                         case "Q_M01_Forward": //正转运行状态
-                            //string a = CalOffset(GetOffset(member));
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M01_Forward");
-                            break;
                         case "Q_M01_Reverse": //反转运行状态
-                            //string b = CalOffset(GetOffset(member));
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M01_Reverse");
-                            break;
                         //提升机、顶升机
-                        case "Q_M02_Forward":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M02_Forward");
-                            break;
-                        case "Q_M02_Reverse":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M02_Reverse");
-                            break;
+                        case "Q_M02_Forward": 
+                        case "Q_M02_Reverse": 
                         //拆盘机
                         case "Q_M01_Raise":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M01_Raise");
-                            break;
                         case "Q_M01_Lower":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M01_Lower");
-                            break;
                         case "Q_M02_ExtendLeftFork":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M02_ExtendLeftFork");
-                            break;
                         case "Q_M02_RetractLeftFork":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M02_RetractLeftFork");
-                            break;
                         case "Q_M03_ExtendRightFork":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M03_ExtendRightFork");
-                            break;
                         case "Q_M03_RetractRightFork":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "Q_M03_RetractRightFork");
+                            offset = CalOffset(GetOffset(member));
+                            SetSacdaTag(offset, GetName(member),"X");
                             break;
-                        //TODO 叠盘机托盘数量
-                        case "R_DV_PalletStackCount":
-                            SetSacdaTag(CalOffset(GetOffset(member)), "R_DV_PalletStackCount",true);
+                        case "R_DV_PalletStackCount": //叠盘机托盘数量
+                            offset = CalOffset(GetOffset(member));
+                            SetSacdaTag(offset, "R_DV_PalletStackCount","INT");
                             break;
                         case "Z_Data"://托盘数据
                             foreach (XmlNode memberOfZ_Data in GetSection(member))
@@ -143,72 +125,74 @@ namespace TIA_Add_In_SCADATool
                                 switch (GetName(memberOfZ_Data))
                                 {
                                     case "Position01":
-                                        //int d = GetOffset(memberOfZ_Data);
                                         foreach (XmlNode memberOfPosition01 in GetSection(memberOfZ_Data))
                                         {
+                                            offset = CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) +
+                                                               GetOffset(memberOfPosition01));
+                                            string input =
+                                                $"{GetName(member)}_{GetName(memberOfZ_Data)}_{GetName(memberOfPosition01)}";
                                             switch (GetName(memberOfPosition01))
                                             {
-                                                //获取原地址变量
-                                                case "Origin": 
-                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), "Z_Data_Position01_Origin");
-                                                    break;
-                                                //获取目的地变量
-                                                case "Destination":
-                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), "Z_Data_Position01_Destination");
+                                                
+                                                case "Origin": //获取原地址变量
+                                                case "Destination": //获取目的地变量
+                                                    SetSacdaTag(offset, input,"UINT");
                                                     break;
                                                 case "PalletID":
                                                     //获取条码的字符长度
                                                     foreach (XmlNode item in GetSection(memberOfPosition01))
                                                     {
-                                                        //Array[1..20] of Char
                                                         string barcodeType = item.Attributes.GetNamedItem("Datatype").Value;
-                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01)), GetBarcodeLenth(barcodeType), "Z_Data_Position01_PalletID");
+                                                        SetSacdaTag(offset, GetBarcodeLength(barcodeType), input,"STRING");
                                                     }
                                                     break;
                                                 //托盘外检拒绝信息 
                                                 case "RejectCode":
                                                     foreach (XmlNode item in GetSection(memberOfPosition01))
                                                     {
-                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition01) + GetOffset(item)), "Z_Data_Position01_" + GetName(item));
+                                                        offset = CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) +
+                                                                           GetOffset(memberOfPosition01) + GetOffset(item));
+                                                        string reject =
+                                                            $"{GetName(member)}_{GetName(memberOfZ_Data)}_{GetName(item)}";
+                                                        SetSacdaTag(offset, reject,"X");
                                                     }
                                                     break;
                                             }
                                         }
                                         break;
                                     case "Position02":
-                                        //int f = GetOffset(memberOfZ_Data);
                                         // 判断InstanceOfName实例决定是否需要占位2数据
                                         if (!_instanceOfName.Contains("_2P"))
                                             break;
                                         foreach (XmlNode memberOfPosition02 in GetSection(memberOfZ_Data))
                                         {
+                                            offset = CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) +
+                                                               GetOffset(memberOfPosition02));
+                                            string input =
+                                                $"{GetName(member)}_{GetName(memberOfZ_Data)}_{GetName(memberOfPosition02)}";
                                             switch (GetName(memberOfPosition02))
                                             {
-                                                //获取原地址变量
-                                                case "Origin":
-                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02)), "Z_Data_Position02_Origin");
-                                                    break;
-                                                //获取目的地变量
-                                                case "Destination":
-                                                    SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02)), "Z_Data_Position02_Destination");
+                                                case "Origin": //获取原地址变量
+                                                case "Destination": //获取目的地变量
+                                                    SetSacdaTag(offset, input,"UINT");
                                                     break;
                                                 case "PalletID":
-                                                    //f += GetOffset(memberOfPosition02);
-                                                    //string g = CalOffset(c + f);
                                                     //获取条码的字符长度
                                                     foreach (XmlNode item in GetSection(memberOfPosition02))
                                                     {
-                                                        //Array[1..20] of Char
                                                         string barcodeType = item.Attributes.GetNamedItem("Datatype").Value;
-                                                        //string barcodeLenth = GetBarcodeLenth(barcodeType);
-                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02)), GetBarcodeLenth(barcodeType), "Z_Data_Position02_PalletID");
+                                                        SetSacdaTag(offset, GetBarcodeLength(barcodeType), input,"STRING");
                                                     }
                                                     break;
                                                 //托盘外检拒绝信息 
                                                 case "RejectCode":
                                                     foreach (XmlNode item in GetSection(memberOfPosition02))
                                                     {
-                                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) + GetOffset(memberOfPosition02) + GetOffset(item)), "Z_Data_Position02_" + GetName(item));
+                                                        offset = CalOffset(GetOffset(member) + GetOffset(memberOfZ_Data) +
+                                                                           GetOffset(memberOfPosition02) + GetOffset(item));
+                                                        string reject =
+                                                            $"{GetName(member)}_{GetName(memberOfZ_Data)}_{GetName(item)}";
+                                                        SetSacdaTag(offset, reject,"X");
                                                     }
                                                     break;
                                             }
@@ -220,46 +204,34 @@ namespace TIA_Add_In_SCADATool
                         case "Z_Status"://输送机状态
                             foreach (XmlNode memberOfZ_Status in GetSection(member))
                             {
+                                offset = CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status));
                                 switch (GetName(memberOfZ_Status))
                                 {
-                                    case "Fault":
-                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Fault");
+                                    case "Fault": //报警
+                                    case "Occupied01": //占位1状态
+                                    case "AutoModeEnabled"://自动模式
+                                    case "JogSelected"://点动模式
+                                        SetSacdaTag(offset, GetName(memberOfZ_Status),"X");
                                         break;
-                                    case "Occupied01":
-                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Occupied01");
-                                        break;
-                                    case "Occupied02":
+                                    case "Occupied02": //占位2状态
                                         // 判断InstanceOfName实例决定是否需要占位2数据
                                         if (!_instanceOfName.Contains("_2P") & !_instanceOfName.Contains("_PStackUni_"))
                                             break;
-                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "Occupied02");
-                                        break;
-                                    //叠盘机自动模式
-                                    case "AutoModeEnabled":
-                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "AutoModeEnabled");
-                                        break;
-                                    //叠盘机手动模式
-                                    case "JogSelected":
-                                        SetSacdaTag(CalOffset(GetOffset(member) + GetOffset(memberOfZ_Status)), "JogSelected");
+                                        SetSacdaTag(offset, GetName(memberOfZ_Status),"X");
                                         break;
                                 }
                             }
                             break;
                     }
+                    
                     //获取诊断变量和报警文本
-                    foreach (string[] supervision in _supervisions)
+                    foreach (string[] supervision in _supervisions.Where(supervision => supervision[0].Contains(GetName(member))))
                     {
-                        if (supervision[0].Contains(GetName(member)))
-                        {
-                            SetSacdaTag(CalOffset(GetOffset(member)), GetName(member), supervision[1], supervision[2], supervision[3]);
-                        }
+                        offset = CalOffset(GetOffset(member));
+                        SetSacdaTag(offset, GetName(member), supervision[1], supervision[2], supervision[3]);
                     }
                 }
             }
-            //写入csv数据流
-            //_streamWriter.Close();
-
-            // 删除导出的Xml文件
         }
 
         /// <summary>
@@ -268,9 +240,10 @@ namespace TIA_Add_In_SCADATool
         /// <param name="xmlDocument"></param>
         /// <param name="namespaceURI1">Sections命名空间</param>
         /// <param name="namespaceURI2">BlockInstSupervisionGroups命名空间</param>
+        /// <param name="namespaceURI3">BlockTypeSupervisions命名空间</param>
         /// <returns>xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5"
         /// xmlns="http://www.siemens.com/automation/Openness/SW/BlockInstanceSupervisions/v3"</returns>
-        private XmlNamespaceManager GetXmlns(XmlDocument xmlDocument, string namespaceURI1, string namespaceURI2, string namespaceURI3)
+        private static XmlNamespaceManager GetXmlns(XmlDocument xmlDocument, string namespaceURI1, string namespaceURI2, string namespaceURI3)
         {
             XmlNamespaceManager xmlns = new XmlNamespaceManager(xmlDocument.NameTable);
             xmlns.AddNamespace("x", namespaceURI1);
@@ -286,10 +259,15 @@ namespace TIA_Add_In_SCADATool
         /// <returns>321</returns>
         private int GetOffset(XmlNode xmlNode)
         {
-            XmlNode integerAttribute = xmlNode.SelectSingleNode("./x:AttributeList", _xmlns).FirstChild.FirstChild;
+            XmlNode integerAttribute = xmlNode.SelectSingleNode("./x:AttributeList", _xmlns)?.FirstChild.FirstChild;
             //获取偏移量
-            int offset = Convert.ToInt16(integerAttribute.Value);
-            return offset;
+            if (integerAttribute != null)
+            {
+                int offset = Convert.ToInt16(integerAttribute.Value);
+                return offset;
+            }
+
+            return 0;
         }
 
         /// <summary>
@@ -310,7 +288,7 @@ namespace TIA_Add_In_SCADATool
         /// <returns></returns>
         private string GetSupervisionType(XmlNode xmlNode)
         {
-            string str = xmlNode.SelectSingleNode("./y:BlockTypeSupervisionNumber", _xmlns).FirstChild.Value;
+            string str = xmlNode.SelectSingleNode("./y:BlockTypeSupervisionNumber", _xmlns)?.FirstChild.Value;
             return str;
         }
 
@@ -333,21 +311,24 @@ namespace TIA_Add_In_SCADATool
         /// <returns></returns>
         private string GetMultiLanguageText(XmlNode xmlNode, string lang)
         {
-            XmlNode specificField = xmlNode.SelectSingleNode("./z:SpecificField", _xmlns);
-            XmlNode specificFieldText = specificField.SelectSingleNode("./z:SpecificFieldText", _xmlns);
-            XmlNode multiLanguageText = specificFieldText.SelectSingleNode(string.Format("./z:MultiLanguageText[@Lang=\"{0}\"]", lang), _xmlns);
-            //如果报警文本没有配置中文/英文，修复报错。
-            string str = "";
-
-            if (multiLanguageText == null)
+            XmlNode specificField     = xmlNode.SelectSingleNode("./z:SpecificField", _xmlns);
+            XmlNode specificFieldText = specificField?.SelectSingleNode("./z:SpecificFieldText", _xmlns);
+            if (specificFieldText != null)
             {
+                XmlNode multiLanguageText = specificFieldText.SelectSingleNode($"./z:MultiLanguageText[@Lang=\"{lang}\"]", _xmlns);
+                //如果报警文本没有配置中文/英文，修复报错。
+                string str = "";
+
+                if (multiLanguageText == null)
+                {
+                    return str;
+                }
+                
+                str = multiLanguageText.FirstChild.Value;
                 return str;
             }
-            else
-            {
-                str = multiLanguageText.FirstChild.Value;
-            }
-            return str;
+
+            return null;
         }
 
         /// <summary>
@@ -355,13 +336,12 @@ namespace TIA_Add_In_SCADATool
         /// </summary>
         /// <param name="getOffset"></param>
         /// <returns>40.1</returns>
-        private string CalOffset(int getOffset)
+        private static string CalOffset(int getOffset)
         {
             //计算偏移量
             string consult = (getOffset / 8).ToString(); //商，"40"
             string rem = (getOffset % 8).ToString(); //余数，"1"
             string offset = consult + "." + rem; //偏移量结果：40.1
-            // Console.WriteLine(offset);
 
             return offset;
         }
@@ -373,7 +353,7 @@ namespace TIA_Add_In_SCADATool
         /// <returns></returns>
         private XmlNode GetSection(XmlNode xmlNode)
         {
-            XmlNode section = xmlNode.SelectSingleNode("./x:Sections", _xmlns).SelectSingleNode("./x:Section", _xmlns);
+            XmlNode section = xmlNode.SelectSingleNode("./x:Sections", _xmlns)?.SelectSingleNode("./x:Section", _xmlns);
             return section;
         }
 
@@ -382,10 +362,15 @@ namespace TIA_Add_In_SCADATool
         /// </summary>
         /// <param name="xmlNode"></param>
         /// <returns>Name="Q_M01_Forward"</returns>
-        private string GetName(XmlNode xmlNode)
+        private static string GetName(XmlNode xmlNode)
         {
-            string name = xmlNode.Attributes.GetNamedItem("Name").Value;
-            return name;
+            if (xmlNode.Attributes != null)
+            {
+                string name = xmlNode.Attributes.GetNamedItem("Name").Value;
+                return name;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -393,117 +378,102 @@ namespace TIA_Add_In_SCADATool
         /// </summary>
         /// <param name="input"></param>
         /// <returns>20</returns>
-        private string GetBarcodeLenth(string input)
+        private static string GetBarcodeLength(string input)
         {
 
             //string input = "Array[1..20] of Char";
-            // 查找 ".." 的位置
-            int rangeIndex = input.IndexOf("..");
-
-            if (rangeIndex != -1)
+            // 查找 "。。" 的位置
+            if (input != null)
             {
-                // 向前搜索数字的边界
-                int startIndex = rangeIndex - 1;
-                while (startIndex >= 0 && char.IsDigit(input[startIndex]))
+                int rangeIndex = input.IndexOf("..", StringComparison.Ordinal);
+
+                if (rangeIndex != -1)
                 {
-                    startIndex--;
+                    // 向前搜索数字的边界
+                    int startIndex = rangeIndex - 1;
+                    while (startIndex >= 0 && char.IsDigit(input[startIndex]))
+                    {
+                        startIndex--;
+                    }
+                    startIndex++;
+
+                    // 向后搜索数字的边界
+                    int endIndex = rangeIndex + 2;
+                    while (endIndex < input.Length && char.IsDigit(input[endIndex]))
+                    {
+                        endIndex++;
+                    }
+                    endIndex--;
+
+                    // 提取数字
+                    string beforeRange = input.Substring(startIndex, rangeIndex - startIndex);
+                    string afterRange  = input.Substring(rangeIndex + 2, endIndex - rangeIndex - 1);
+
+                    int beforeNumber = int.Parse(beforeRange);
+                    int afterNumber  = int.Parse(afterRange);
+
+                    // 计算差值
+                    string length = (afterNumber - beforeNumber + 1).ToString();
+
+                    return length;
                 }
-                startIndex++;
-
-                // 向后搜索数字的边界
-                int endIndex = rangeIndex + 2;
-                while (endIndex < input.Length && char.IsDigit(input[endIndex]))
-                {
-                    endIndex++;
-                }
-                endIndex--;
-
-                // 提取数字
-                string beforeRange = input.Substring(startIndex, rangeIndex - startIndex);
-                string afterRange = input.Substring(rangeIndex + 2, endIndex - rangeIndex - 1);
-
-                int beforeNumber = int.Parse(beforeRange);
-                int afterNumber = int.Parse(afterRange);
-
-                // 计算差值
-                string lenth = (afterNumber - beforeNumber + 1).ToString();
-                //Console.WriteLine("前数字：" + beforeRange);
-                //Console.WriteLine("后数字：" + afterRange);
-
-                return lenth;
-            }
-            else
-            {
-                //Console.WriteLine("未找到匹配的范围。");
+                
                 return string.Empty;
             }
+
+            return null;
         }
 
         /// <summary>
         /// 设置SCADA标签值-Bool
         /// </summary>
-        /// <param name="offset"></param>
-        /// <param name="input"></param>
+        /// <param name="offset">偏移量</param>
+        /// <param name="input">输入参数：拼接的变量名称</param>
+        /// <param name="dataType">数据类型</param>
         /// <returns>"DB304,X40.0;P1005_Q_M01_Forward","0"</returns>
-        private string SetSacdaTag(string offset, string input)
+        private void SetSacdaTag(string offset, string input, string dataType)
         {
             // BOOL：DB编号,X偏移量;标签
-            string str = string.Format("\"{0}{1},X{2};{3}_{4}\",\"0\"", _programmingLanguage, _number, offset, _instanceName, input);
+            // INT：DB编号,INT偏移量;标签
+            // UINT：DB编号,UINT偏移量;标签
+            string str = $"\"{_programmingLanguage}{_number},{dataType}{offset};{_instanceName}_{input}\",\"0\"";
             _streamWriter.WriteLine(str);
             Console.WriteLine(str);
-            return str;
-        }
-
-        /// <summary>
-        /// 设置SCADA标签值-Int
-        /// </summary>
-        /// <param name="offset"></param>
-        /// <param name="input"></param>
-        /// <returns>"DB304,INT40;P1005_R_DV_PalletStackCountd","0"</returns>
-        private string SetSacdaTag(string offset, string input, bool isInt)
-        {
-            string str = "";
-
-            if (!isInt)
-            {
-                return str;
-            }
-            offset = offset.Replace(".0","");
-            // Int：DB编号,INT偏移量;标签
-            str = string.Format("\"{0}{1},INT{2};{3}_{4}\",\"0\"", _programmingLanguage, _number, offset, _instanceName, input);
-            _streamWriter.WriteLine(str);
-            Console.WriteLine(str);
-            return str;
         }
 
         /// <summary>
         /// 设置SCADA标签值-字符串
         /// </summary>
-        /// <param name="offset"></param>
-        /// <param name="input"></param>
+        /// <param name="offset">偏移量</param>
+        /// <param name="barcodeLength">条码的长度</param>
+        /// <param name="input">输入参数：拼接的变量名称</param>
+        /// <param name="dataType">数据类型</param>
         /// <returns>"DB304,STRING178.20;P1005_Z_Data_Position01_PalletID","0"</returns>
-        private string SetSacdaTag(string offset, string barcodeLenth, string input)
+        private void SetSacdaTag(string offset, string barcodeLength, string input, string dataType)
         {
-            // String：DB编号,SATRING偏移量.字符长度;标签
-            string str = string.Format("\"{0}{1},STRING{2}.{3};{4}_{5}\",\"0\"", _programmingLanguage, _number, offset.Replace(".0", ""), barcodeLenth, _instanceName, input);
+            // String：DB编号,STRING偏移量.字符长度;标签
+            string str =
+                $"\"{_programmingLanguage}{_number},{dataType}{offset.Replace(".0", "")}.{barcodeLength};{_instanceName}_{input}\",\"0\"";
             _streamWriter.WriteLine(str);
             Console.WriteLine(str);
-            return str;
         }
 
         /// <summary>
         /// 设置SCADA标签值-监控报警
         /// </summary>
-        /// <param name="offset"></param>
-        /// <param name="input"></param>
+        /// <param name="offset">偏移量</param>
+        /// <param name="input">输入参数：拼接的变量名称</param>
+        /// <param name="msgType">报警类型</param>
+        /// <param name="textUs">报警文本-英文</param>
+        /// <param name="textZh">报警文本-中文</param>
         /// <returns>"DB304,X122.1;P1005_Y_DV_JogSelected","1","zh-CN","en-US"</returns>
-        private string SetSacdaTag(string offset, string input, string msgType, string textUs, string textZh)
+        private void SetSacdaTag(string offset, string input, string msgType, string textUs, string textZh)
         {
             // BOOL：DB编号,X偏移量;标签
-            string str = string.Format("\"{0}{1},X{2};{3}_{4}\",\"{5}\",\"{6}\",\"{7}\"", _programmingLanguage, _number, offset, _instanceName, input, msgType, textUs, textZh);
+            string str =
+                $"\"{_programmingLanguage}{_number},X{offset};{_instanceName}_{input}\",\"{msgType}\",\"{textUs}\",\"{textZh}\"";
             _streamWriter.WriteLine(str);
             Console.WriteLine(str);
-            return str;
         }
     }
 }
